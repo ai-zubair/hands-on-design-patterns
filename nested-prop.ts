@@ -31,31 +31,46 @@ interface IndexableObject{
   [key: string]: any;
 }
 
-function defineProp(obj: IndexableObject, path: string, value: any){
+function defineProp(targetObject: IndexableObject, keyPath: string, value: any): void{
 
   //handle each nested prop separately
-  const propKeyList = path.split('.');
+  const propKeyList = keyPath.split('.');
 
   //create references and carry them across iterations
-  propKeyList.reduce((nestedPathObj: IndexableObject, nestedPathKey: string, currentNestedKeyIndex: number): IndexableObject =>{
+  propKeyList.reduce((parentObject: IndexableObject, childKey: string, currentKeyIndex: number): IndexableObject => {
 
-    //last key sets to value
-    if(currentNestedKeyIndex === propKeyList.length - 1){
-      nestedPathObj[nestedPathKey] = value;
+    //last key sets to value //return to avoid later assignments
+    if(currentKeyIndex === propKeyList.length - 1){
+      return parentObject[childKey] = value;
     }
 
     //don't over write an existing value
-    if (typeof nestedPathObj[nestedPathKey] === "object") {
-      return nestedPathObj[nestedPathKey];
+    if (typeof parentObject[childKey] === "object") {
+      return parentObject[childKey];
     
     //store a reference for next iteration
     } else {
-      return nestedPathObj[nestedPathKey] = {};
+      return parentObject[childKey] = {};
     }
 
     //original object is the condensed reference for the 1st path key
-  }, obj);
+  }, targetObject);
   
+}
+
+//Iterative version avoids extra comparisons for the last prop key
+function definePropIterative(targetObject: IndexableObject, keyPath: string, value: any): void{
+  const propKeyList = keyPath.split('.');
+  const lastPropKey = propKeyList.pop();
+  let parentObject = targetObject;
+  for (const childKey of propKeyList) {
+    if(typeof parentObject[childKey] === "object"){
+      parentObject = parentObject[childKey];
+    }else{
+      parentObject = parentObject[childKey] = {};
+    }
+  }
+  parentObject[lastPropKey] = value;
 }
 
 
@@ -65,3 +80,4 @@ const dummy = {
 }
 
 defineProp(dummy, 'address.location.cordinates.lat', 12.45);
+definePropIterative(dummy, 'developer.skills.frontend.frameworks', 'react');
