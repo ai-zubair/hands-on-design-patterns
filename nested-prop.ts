@@ -24,30 +24,33 @@
   */
 
   /**
-   * ? Ta-Da! This is exactly what the Array.prototype.reduce(...) helps us with! Carry a value from previous interation into current iteration
+   * ? Ta-Da! This is exactly what the Array.prototype.reduce(...) helps us with! 
+   * ? Carry a value from previous interation into current iteration.
    */
+interface IndexableObject{
+  [key: string]: any;
+}
 
+function defineProp(obj: IndexableObject, path: string, value: any){
 
-function defineProp(obj, path, value){
-
-  //handle each nested prop separatley
+  //handle each nested prop separately
   const propKeyList = path.split('.');
 
-  //create references and carry them over
-  propKeyList.reduce((nestedPathObj, nastedPathKey, currentNestedKeyIndex)=>{
+  //create references and carry them across iterations
+  propKeyList.reduce((nestedPathObj: IndexableObject, nestedPathKey: string, currentNestedKeyIndex: number): IndexableObject =>{
 
     //last key sets to value
     if(currentNestedKeyIndex === propKeyList.length - 1){
-      nestedPathObj[nastedPathKey] = value;
+      nestedPathObj[nestedPathKey] = value;
     }
 
     //don't over write an existing value
-    if (typeof nestedPathObj[nastedPathKey] === "object") {
-      return nestedPathObj[nastedPathKey];
+    if (typeof nestedPathObj[nestedPathKey] === "object") {
+      return nestedPathObj[nestedPathKey];
     
-    //create and store condensed refernce for next iteration
+    //store a reference for next iteration
     } else {
-      return nestedPathObj[nastedPathKey] = {};
+      return nestedPathObj[nestedPathKey] = {};
     }
 
     //original object is the condensed reference for the 1st path key
@@ -61,4 +64,4 @@ const dummy = {
   name: 'Jhon Doe'
 }
 
-defineProp(objVal, 'address.location.cordinates.lat', 12.45);
+defineProp(dummy, 'address.location.cordinates.lat', 12.45);
