@@ -1,6 +1,18 @@
 /**
- * * The original module pattern.
+ * * THE ORIGINAL MODULE PATTERN.
  */
+
+/**
+* *  ADVANTAGES
+* ?1 Provides a sense of Encapsulation making the code look lot cleaner.
+* ?2 Provides for private and public members by means of function scoping and closures.
+*
+* !  DISADVANTAGES
+* ?1 Changing member visibility is too much of an effort.
+* ?2 Private members not available on the later added public members.
+* ?3 Privates can be only fixed by over-riding corresponding publics.
+* ?4 Privates are not as flexible as it appears at the first go.
+*/
 const basketModule = (function () {
   //private members
 
