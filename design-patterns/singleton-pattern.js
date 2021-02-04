@@ -71,7 +71,7 @@ context.get("admin");
 /**
  * * A singleton manager for a given constructor
  */
-function SingletonWrapper(Constructor){
+function SingletonWrapperF(Constructor){
   //store the instance reference on Consrtuctor to avoid exposing it
   this.getInstance = () => {
     //reference is available via closure of getInstance() over Constructor
@@ -94,7 +94,7 @@ function Car(){
  * * Singleton manager for Car constructor
  * * Pass around into the clients.
  */
-const CarSingletonManager = new SingletonWrapper(Car);
+const CarSingletonManager = new SingletonWrapperF(Car);
 
 /**
  * * Car is still instantiable.
