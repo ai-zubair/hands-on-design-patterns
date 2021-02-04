@@ -57,6 +57,14 @@ function ObserverF(){
   this.update = () => {};
 }
 
+
+//Extender utility
+function extend(sourceObject, extension){
+  for (const key in extension) {
+    sourceObject[key] = extension[key];
+  }
+}
+
 const observer1 = new ObserverF();
 //provide a custom implementation of update
 observer1.update = ( newSubjectState ) => {
@@ -78,3 +86,38 @@ newSubject.addObserver(observer2);
 newSubject.notifyObservers({ state: {
   name: "Zubair"
 }})
+
+
+//DOM illustration
+const SubjectCheckbox = document.getElementById('subject');
+const ObserverCheckboxCreator = document.getElementById('observer-creator');
+const observerContainer = document.getElementById('observer-container');
+
+//enhance the main checkbox to be a subject
+extend(SubjectCheckbox, new Subject(new ObserverList()));
+
+//trigger observers when checkbox is clicked
+SubjectCheckbox.addEventListener('click',()=>{
+  SubjectCheckbox.notifyObservers(SubjectCheckbox.checked);
+})
+
+//observer checkbox adder
+ObserverCheckboxCreator.addEventListener('click',()=>{
+  //create a new checkbox
+  const observerCheckbox = document.createElement('input');
+  observerCheckbox.type = "checkbox";
+
+  //enhance the checkbox to be an OBSERVER
+  extend(observerCheckbox, new ObserverF());
+
+  //provide custom update behaviour for master checkbox state changes
+  observerCheckbox.update = function(masterCheckboxState){
+    this.checked = masterCheckboxState;
+  }
+
+  //add the observer to the master checkbox
+  SubjectCheckbox.addObserver(observerCheckbox);
+
+  //append observer checkbox to dom
+  observerContainer.appendChild(observerCheckbox);
+})
