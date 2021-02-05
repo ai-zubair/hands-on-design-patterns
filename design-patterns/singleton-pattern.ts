@@ -32,3 +32,7 @@ class Singleton{
 const someDummySingleton = Singleton.getInstance();
 someDummySingleton.greet();
 someDummySingleton.greetMessage;
+
+/**
+ * ? A singleton wrapper?
+ */
