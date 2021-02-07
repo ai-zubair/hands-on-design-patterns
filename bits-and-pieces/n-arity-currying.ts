@@ -180,7 +180,7 @@ function curryWithoutArgStore(f: Function): Function{
  * * Mostly functions are 'this' aware. Hence, if our curried function gets 'this' value(cause our underlying 
  * * function would need it), we must make sure it gets to the underlying function.
  */
-function curryWithThisSupport(f: Function): Function{
+export function curry(f: Function): Function{
 
   //argument collector function
   return function collectorFunction(...args){
