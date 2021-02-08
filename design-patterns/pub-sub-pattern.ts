@@ -25,58 +25,47 @@ namespace PubSubTypes{
   }
   
   export type SubscriptionIndex = number;
-  
+
+  export type SubscriptionTuple = [PubSubTypes.PubSubTopic | undefined, SubscriptionIndex];
+
   export interface PublishSubscribe{
     readonly publish:      (topicName: string, topicData: any)=> boolean;
     readonly subscribe:    (topicName: string, callback: SubscriptionCallback)=> SubscriptionIdentifier;
     readonly unsubscribe:  (SubscriptionIdentifier: SubscriptionIdentifier)=> Subscription | undefined;
   }
 }
+
 namespace PubSubUtils{
 
-  export const getSubscriptionCallbackInvoker = curry(PubSubUtils.invokeSubscriptionCallback);
-  export const getSubscriptionIDMatcher = curry(PubSubUtils.checkIDMatchesSubscription);
+  export const getSubscriptionCallbackInvoker = curry(invokeSubscriptionCallback);
+  export const getSubscriptionIDMatcher       = curry(checkIDMatchesSubscription);
 
-  export function findSubscriptionInTopic( topicName: string, subscriptionID: string ): [PubSubTypes.PubSubTopic | undefined, PubSubTypes.SubscriptionIndex]{
-    const topicInTopicsChannel = this.topicsChannel[topicName];
-    if(topicInTopicsChannel && topicInTopicsChannel.subscribers > 0){
-      const topicSubscriptions = this.topicsChannel[topicName].subscriptions;
-      const subscriptionIDMatcher = this.getSubscriptionIDMatcher(subscriptionID);
-      const subscriptionIndex = topicSubscriptions.findIndex(subscriptionIDMatcher);
-      return [topicInTopicsChannel ,subscriptionIndex];
-    }
-    return [undefined , -1];
-  }
-
-  export function isTopicEmptyOrNonExistent(topicName: string): boolean{
-    return !this.topicsChannel[topicName] || !(this.topicsChannel[topicName].subscribers <= 0) ;
-  }
-
-  export function initializeNonExistentTopic(topicName: string): void{
-    this.topicsChannel[topicName] = {
-      subscribers: 0,
-      subscriptions: []
-    };
+  export function isTopicEmptyOrNonExistent(topic: PubSubTypes.PubSubTopic): boolean{
+    return (!topic) || (topic.subscribers <= 0) ;
   }
 
   export function invokeSubscriptionCallback( topicName: string, topicData: any, subscription: PubSubTypes.Subscription ): void{
     return subscription.callback(topicName, topicData);
   }
 
-  export function checkIDMatchesSubscription( subscriptionID: string, subscription: PubSubTypes.Subscription): boolean{
-    return subscriptionID === subscription.subscriptionID;
+  export function initializeNonExistentTopic(topicsChannel: PubSubTypes.PubSubTopicsChannel,topicName: string): PubSubTypes.PubSubTopic{
+    return topicsChannel[topicName] = {
+      subscribers: 0,
+      subscriptions: []
+    };
   }
 
   export function createTopicSubscription(subscriptionID: number, callback: PubSubTypes.SubscriptionCallback): PubSubTypes.Subscription{
     return {
-      subscriptionID: String(subscriptionID++),
+      subscriptionID: String(subscriptionID),
       callback
     }
   }
 
-  export function queueTopicSubscription(topicsChannel: PubSubTypes.PubSubTopicsChannel,topicName: string, topicSubscription: PubSubTypes.Subscription): void{
-    topicsChannel[topicName].subscriptions.push(topicSubscription);
-    topicsChannel[topicName].subscribers++;
+  export function queueSubscriptionInTopic(topic: PubSubTypes.PubSubTopic, topicSubscription: PubSubTypes.Subscription): number{
+    topic.subscriptions.push(topicSubscription);
+    topic.subscribers++;
+    return topic.subscribers;
   }
 
   export function createSubscriptionIdentifier(topicName: string, topicSubscriptionID: string): PubSubTypes.SubscriptionIdentifier{
@@ -85,10 +74,32 @@ namespace PubSubUtils{
       subscriptionID: topicSubscriptionID
     }
   }
+
+  export function findSubscriptionInTopic( topic: PubSubTypes.PubSubTopic, subscriptionID: string ): number{
+    if(topic && topic.subscribers > 0){
+      const topicSubscriptions = topic.subscriptions;
+      const subscriptionIDMatcher = getSubscriptionIDMatcher(subscriptionID);
+      const subscriptionIndex = topicSubscriptions.findIndex(subscriptionIDMatcher);
+      return subscriptionIndex;
+    }
+    return -1;
+  }
+
+  export function checkIDMatchesSubscription( subscriptionID: string, subscription: PubSubTypes.Subscription): boolean{
+    return subscriptionID === subscription.subscriptionID;
+  }
+
+  export function pruneTopicSubscription(topic: PubSubTypes.PubSubTopic, subscriptionIndex: number){
+    topic.subscribers--;
+    return topic.subscriptions.splice(subscriptionIndex,1)[0];
+  }
+
 }
+
+/* IMPLEMENTATION */
 class PubSub implements PubSubTypes.PublishSubscribe{
 
-  /* Each subscription gets an ID , Useful for un-subscribing */
+  /* Each topic subscription gets an ID , Useful for un-subscribing */
   private subscriptionID: number = 0;
 
   /* Topics and their subscriptions live here */
@@ -96,36 +107,40 @@ class PubSub implements PubSubTypes.PublishSubscribe{
 
   constructor() {};
 
-  /* create a subscription for a topic */
-  public subscribe(topicName: string, callback: PubSubTypes.SubscriptionCallback): PubSubTypes.SubscriptionIdentifier{
-    if(!this.topicsChannel[topicName]){
-      PubSubUtils.initializeNonExistentTopic(topicName);
-    }
-    const topicSubscription = PubSubUtils.createTopicSubscription(this.subscriptionID,callback);
-    PubSubUtils.queueTopicSubscription(this.topicsChannel, topicName, topicSubscription);
-    return PubSubUtils.createSubscriptionIdentifier(topicName, topicSubscription.subscriptionID);
-  }
-
-  /* publish data to topicName and return true if a success */
+  /* publish topicData to topicName and return true if a success */
   public publish(topicName: string, topicData: any): boolean{
-    if(PubSubUtils.isTopicEmptyOrNonExistent(topicName)){
+    const topic = this.topicsChannel[topicName];
+    if(PubSubUtils.isTopicEmptyOrNonExistent(topic)){
       return false;
     }else{
-      const topicSubscriptions = this.topicsChannel[topicName].subscriptions;
+      const topicSubscriptions = topic.subscriptions;
       const invokeSubscriptionCallback = PubSubUtils.getSubscriptionCallbackInvoker(topicName)(topicData);
       topicSubscriptions.forEach(invokeSubscriptionCallback);
       return true;
     }
   }
 
+  /* create a subscription for a topic */
+  public subscribe(topicName: string, callback: PubSubTypes.SubscriptionCallback): PubSubTypes.SubscriptionIdentifier{
+    let topic = this.topicsChannel[topicName];
+    if(!topic){
+      topic = PubSubUtils.initializeNonExistentTopic(this.topicsChannel,topicName);
+    }
+    const topicSubscription = PubSubUtils.createTopicSubscription(this.subscriptionID++,callback);
+    PubSubUtils.queueSubscriptionInTopic(topic, topicSubscription);
+    return PubSubUtils.createSubscriptionIdentifier(topicName, topicSubscription.subscriptionID);
+  }
+
   /* remove a subscription for a topic */
   public unsubscribe(subscriptionIdentifier: PubSubTypes.SubscriptionIdentifier): PubSubTypes.Subscription | undefined{
     const { topicName, subscriptionID } = subscriptionIdentifier;
-    const [ topicInTopicsChannel, subscriptionIndex] = PubSubUtils.findSubscriptionInTopic(topicName, subscriptionID);
-    if( topicInTopicsChannel && subscriptionIndex>=0){
-      topicInTopicsChannel.subscribers--;
-      return topicInTopicsChannel.subscriptions.splice(subscriptionIndex,1)[0];
+    const topic = this.topicsChannel[topicName];
+    const subscriptionIndex = PubSubUtils.findSubscriptionInTopic(topic, subscriptionID);
+    if( topic && subscriptionIndex>=0){
+      return PubSubUtils.pruneTopicSubscription(topic, subscriptionIndex);
     }
     return undefined;
   }
 }
+
+export { PubSub };

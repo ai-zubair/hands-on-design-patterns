@@ -87,7 +87,7 @@ function curryBasic(f: Function): Function{
     if(collectedArguments.length === f.length){
 
       //call the original function with the collected arguments
-      f(...collectedArguments);
+      return f(...collectedArguments);
 
     }else{
 
@@ -131,7 +131,7 @@ function curryAnyArgCombination(f: Function): Function{
     if(collectedArguments.length === f.length){
 
       //call the original function with the collected arguments
-      f(...collectedArguments);
+      return f(...collectedArguments);
 
     }else{
 
@@ -163,7 +163,7 @@ function curryWithoutArgStore(f: Function): Function{
     if(args.length === f.length){
 
       //call the original function with the collected arguments
-      f(...args);
+      return f(...args);
 
     }else{
 
@@ -189,7 +189,7 @@ export function curry(f: Function): Function{
     if(args.length === f.length){
 
       //call the original function with the collected arguments
-      f.apply(this,...args);
+      return f.apply(this,args);
 
     }else{
 
