@@ -143,4 +143,25 @@ class PubSub implements PubSubTypes.PublishSubscribe{
   }
 }
 
-export { PubSub };
+/* PubSub makes sense as a Singleton */
+class PubSubSingleton{
+  /* store the singleton instance reference */
+  /* allow lazy initialization */
+  private static instance: PubSub = null;
+
+  /* make the constructor private to avoid explicit instantiation */
+  private constructor(){}
+
+  /* expose a public method for making the singleton instance available */
+  public static getInstance(): PubSub{
+    if(!this.instance){
+      this.instance = new PubSub();
+    }
+    return this.instance;
+  }
+}
+
+
+export const PUB_SUB_SINGELTON_SERVICE_KEY = 'PUB_SUB';
+
+export {PubSub, PubSubSingleton};
